@@ -1,34 +1,32 @@
 name: CI
 
+# 언제 실행할까 (이벤트)
 on:
   push:
-    branches: [main, dev, "feature/**"]
-  pull_request:
+    branches: [main, dev, "feature/**"] # 브랜치 전략(CLAUDE.md)의 세 종류 브랜치 모두
+  pull_request: # PR을 열거나 새 커밋을 올릴 때
+  workflow_dispatch: # Actions 탭의 "Run workflow" 버튼으로 수동 실행
+
+# 같은 브랜치에 연달아 push하면 이전 실행은 취소하고 최신 것만 검사한다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-    # .env는 저장소에 커밋되지 않으므로 CI에서 직접 지정한다.
-    # 개발 DB(dev.db)용 설정이며, 테스트는 test.db를 별도로 사용한다.
-    env:
-      DATABASE_URL: "file:./dev.db"
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4 # 1. 코드 받아오기
+      - uses: pnpm/action-setup@v4 # 2. pnpm 설치
         with:
-          version: 11
-      - uses: actions/setup-node@v4
+          version: 12 # 로컬 pnpm 버전(pnpm -v)에 맞춘다
+      - uses: actions/setup-node@v4 # 3. Node.js 설치
         with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install
-      - name: Prisma 클라이언트 생성
-        run: pnpm exec prisma generate
-      - name: DB 스키마 적용 (migrate deploy)
-        run: pnpm exec prisma migrate deploy
-      - name: 상품 시드 데이터 주입
-        run: pnpm exec prisma db seed
+          node-version: 24 # 로컬 Node 버전(node -v)에 맞춘다
+          cache: pnpm # 의존성을 캐시해서 더 빠르게
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile # lockfile과 다르면 실패 → "내 컴퓨터에선 되는데" 방지
       - name: 린트 검사
         run: pnpm lint
       - name: 테스트 실행
-        run: pnpm exec vitest run
+        run: pnpm test:run # vitest run — watch 모드가 아닌 1회 실행

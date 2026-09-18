@@ -24,7 +24,7 @@
 예를 들어:
 
 ```ts
-// 가격을 "12,000원"으로 표시하는 함수
+// 가격을 "12000원"으로 표시하는 함수
 function formatPrice(n: number) {
   return `${n}원`
 }
